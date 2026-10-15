@@ -49,7 +49,7 @@ parser.add_argument(
 
 
 def main(argv=None):
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.debug:
         tornado.log.enable_pretty_logging()

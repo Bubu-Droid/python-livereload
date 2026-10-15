@@ -193,8 +193,8 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
             if abs_path not in hashes:
                 mtm, hsh = _load_version(abs_path)
 
-                hashes[abs_path] = mtm
-                mtimes[abs_path] = hsh
+                hashes[abs_path] = hsh
+                mtimes[abs_path] = mtm
             else:
                 hsh = hashes.get(abs_path)
                 mtm = mtimes.get(abs_path)
@@ -202,8 +202,8 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
                 if mtm != cls.get_content_modified_time(abs_path):
                     mtm, hsh = _load_version(abs_path)
 
-                    hashes[abs_path] = mtm
-                    mtimes[abs_path] = hsh
+                    hashes[abs_path] = hsh
+                    mtimes[abs_path] = mtm
 
             if hsh:
                 return hsh
