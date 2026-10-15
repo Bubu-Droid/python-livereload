@@ -8,7 +8,7 @@ Reload webpages on changes, without hitting refresh in your browser.
 
 LiveReload is for web developers who know Python. It is available on [PyPI].
 
-```
+```text
 $ pip install livereload
 ```
 

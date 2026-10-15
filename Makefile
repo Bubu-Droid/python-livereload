@@ -4,35 +4,35 @@ clean: clean-build clean-pyc
 
 
 clean-build:
-	rm -fr build/
-	rm -fr dist/
-	rm -fr *.egg-info
+  rm -fr build/
+  rm -fr dist/
+  rm -fr *.egg-info
 
 
 clean-pyc:
-	find . -name '*.pyc' -exec rm -f {} +
-	find . -name '*.pyo' -exec rm -f {} +
-	find . -name '*~' -exec rm -f {} +
+  find . -name '*.pyc' -exec rm -f {} +
+  find . -name '*.pyo' -exec rm -f {} +
+  find . -name '*~' -exec rm -f {} +
 
 install:
-	uv sync
+  uv sync
 
 build:
-	uv build
+  uv build
 
 docs:
-	$(MAKE) -C docs html
+  $(MAKE) -C docs html
 
 test:
-	uv run pytest
+  uv run pytest
 
 lint:
-	uv run ruff check .
+  uv run ruff check .
 
 typecheck:
-	uv run mypy
+  uv run mypy
 
 check: lint typecheck test
 
 coverage:
-	uv run --with pytest-cov pytest --cov=livereload --cov-report=html
+  uv run --with pytest-cov pytest --cov=livereload --cov-report=html
