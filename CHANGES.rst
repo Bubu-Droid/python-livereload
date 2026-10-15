@@ -3,6 +3,15 @@ Changelog
 
 The full list of changes between each Python LiveReload release.
 
+Unreleased
+----------
+
+1. Require Python 3.9 or newer
+2. Packaging moved to ``pyproject.toml`` (hatchling) and a ``src/`` layout
+3. Add type hints and a ``py.typed`` marker
+4. Fix the static file version cache storing mtimes and hashes swapped
+5. ``livereload.cli.main()`` now honors its ``argv`` argument
+
 Version 2.7.1
 -------------
 

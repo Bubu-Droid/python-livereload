@@ -66,3 +66,21 @@ ignore_missing_imports = true
 # BaseCommand is untyped without django-stubs.
 module = "livereload.management.*"
 disallow_subclassing_any = false
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=8.4.2",
+    "ruff>=0.17.1",
+    "typing-extensions>=4.16.0",
+]
+
+[tool.ruff]
+src = ["src"]
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

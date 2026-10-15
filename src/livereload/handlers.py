@@ -56,7 +56,7 @@ class LiveReloadHandler(WebSocketHandler):
 
         try:
             self.write_message(message)
-        except:
+        except Exception:
             logger.error('Error sending message', exc_info=True)
 
     @classmethod
@@ -124,7 +124,7 @@ class LiveReloadHandler(WebSocketHandler):
         for waiter in cls.waiters.copy():
             try:
                 waiter.write_message(msg)
-            except:
+            except Exception:
                 logger.error('Error sending message', exc_info=True)
                 cls.waiters.remove(waiter)
 
@@ -148,7 +148,7 @@ class LiveReloadHandler(WebSocketHandler):
             self.send_message(handshake)
 
         if data.command == 'info' and 'url' in data:
-            logger.info('Browser Connected: %s' % data.url)
+            logger.info('Browser Connected: %s', data.url)
             LiveReloadHandler.waiters.add(self)
 
 

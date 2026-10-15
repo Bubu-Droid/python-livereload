@@ -248,10 +248,10 @@ class Server:
         self.SFH: type[StaticFileHandler] = StaticFileHandler
 
     def setHeader(self, name: str, value: str) -> None:
-        """Add or override HTTP headers at the at the beginning of the 
+        """Add or override HTTP headers at the at the beginning of the
            request.
 
-        Once you have initialized a server, you can add one or more 
+        Once you have initialized a server, you can add one or more
         headers before starting the server::
 
             server.setHeader('Access-Control-Allow-Origin', '*')
@@ -335,7 +335,10 @@ class Server:
         if liveport:
             live_script = escape.utf8(script_template % liveport)
         else:
-            live_script = escape.utf8(script_template % "(window.location.port || (window.location.protocol == 'https:' ? 443: 80))")
+            live_script = escape.utf8(script_template % (
+                "(window.location.port || "
+                "(window.location.protocol == 'https:' ? 443: 80))"
+            ))
 
         web_handlers = self.get_web_handlers(live_script)
 

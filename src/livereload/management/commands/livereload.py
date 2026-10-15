@@ -18,20 +18,23 @@ class Command(BaseCommand):
         parser.add_argument('addrport',
                             nargs='?',
                             default='127.0.0.1:8000',
-                            help='host and optional port the django server should listen on (default: 127.0.0.1:8000)')
+                            help=('host and optional port the django server should '
+                                  'listen on (default: 127.0.0.1:8000)'))
         parser.add_argument('-l', '--liveport',
                             type=int,
                             default=35729,
-                            help='port the livereload server should listen on (default: 35729)')
+                            help=('port the livereload server should listen on '
+                                  '(default: 35729)'))
 
     def handle(self, *args: Any, **options: Any) -> None:
-        m = re.match(naiveip_re, options['addrport'])
+        addrport = options['addrport']
+        m = re.match(naiveip_re, addrport)
         if m is None:
-            raise CommandError('"%s" is not a valid port number '
-                               'or address:port pair.' % options['addrport'])
+            raise CommandError(f'"{addrport}" is not a valid port number '
+                               'or address:port pair.')
         addr, _ipv4, _ipv6, _fqdn, port = m.groups()
         if not port.isdigit():
-            raise CommandError("%r is not a valid port number." % port)
+            raise CommandError(f"{port!r} is not a valid port number.")
 
         if addr:
             if _ipv6:
