@@ -46,10 +46,10 @@ Changelog = "https://github.com/lepture/python-livereload/blob/master/CHANGES.rs
 livereload = "livereload.cli:main"
 
 [tool.hatch.version]
-path = "livereload/__init__.py"
+path = "src/livereload/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["livereload"]
+packages = ["src/livereload"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/livereload", "/tests", "/docs", "/CHANGES.rst"]
+include = ["/src", "/tests", "/docs", "/CHANGES.rst"]
