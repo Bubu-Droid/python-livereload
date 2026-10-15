@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 import os
 import re
+from argparse import ArgumentParser
+from typing import Any
+
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management.commands.runserver import naiveip_re
 from django.core.servers.basehttp import get_internal_wsgi_application
@@ -9,7 +14,7 @@ from livereload import Server
 class Command(BaseCommand):
     help = 'Runs the development server with livereload enabled.'
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument('addrport',
                             nargs='?',
                             default='127.0.0.1:8000',
@@ -19,7 +24,7 @@ class Command(BaseCommand):
                             default=35729,
                             help='port the livereload server should listen on (default: 35729)')
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         m = re.match(naiveip_re, options['addrport'])
         if m is None:
             raise CommandError('"%s" is not a valid port number '
@@ -40,4 +45,4 @@ class Command(BaseCommand):
             if file[0] != '.' and file[:2] != '__' and os.path.isdir(file):
                 server.watch(file)
 
-        server.serve(host=addr, port=port, liveport=options['liveport'])
+        server.serve(host=addr, port=int(port), liveport=options['liveport'])

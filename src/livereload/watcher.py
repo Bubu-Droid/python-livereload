@@ -8,11 +8,16 @@
     :license: BSD, see LICENSE for more details.
 """
 
+from __future__ import annotations
+
 import glob
 import logging
 import os
 import time
 from inspect import signature
+from typing import Any, Callable
+
+from ._typing import Delay, IgnoreFunc, TaskFunc, override
 
 try:
     import pyinotify
@@ -24,37 +29,43 @@ logger = logging.getLogger('livereload')
 
 class Watcher:
     """A file watcher registry."""
-    def __init__(self):
-        self._tasks = {}
+    def __init__(self) -> None:
+        self._tasks: dict[str, dict[str, Any]] = {}
 
         # modification time of filepaths for each task,
         # before and after checking for changes
-        self._task_mtimes = {}
-        self._new_mtimes = {}
+        self._task_mtimes: dict[str, float] = {}
+        self._new_mtimes: dict[str, float] = {}
 
         # setting changes
-        self._changes = []
+        self._changes: list[tuple[str, Delay]] = []
 
         # filepath that is changed
-        self.filepath = None
+        self.filepath: str | None = None
         self._start = time.time()
 
         # list of ignored dirs
         self.ignored_dirs = ['.git', '.hg', '.svn', '.cvs']
 
-    def ignore_dirs(self, *args):
+    def ignore_dirs(self, *args: str) -> None:
         self.ignored_dirs.extend(args)
 
-    def remove_dirs_from_ignore(self, *args):
+    def remove_dirs_from_ignore(self, *args: str) -> None:
         for a in args:
             self.ignored_dirs.remove(a)
 
-    def ignore(self, filename):
+    def ignore(self, filename: str) -> bool:
         """Ignore a given filename or not."""
         _, ext = os.path.splitext(filename)
         return ext in ['.pyc', '.pyo', '.o', '.swp']
 
-    def watch(self, path, func=None, delay=0, ignore=None):
+    def watch(
+        self,
+        path: str,
+        func: TaskFunc | None = None,
+        delay: Delay = 0,
+        ignore: IgnoreFunc | None = None,
+    ) -> None:
         """Add a task to watcher.
 
         :param path: a filepath or directory path or glob pattern
@@ -72,12 +83,12 @@ class Watcher:
             'mtimes': {},
         }
 
-    def start(self, callback):
+    def start(self, callback: Callable[[], None]) -> bool:
         """Start the watcher running, calling callback when changes are
         observed. If this returns False, regular polling will be used."""
         return False
 
-    def examine(self):
+    def examine(self) -> tuple[str | None, Delay]:
         """Check if there are changes. If so, run the given task.
 
         Returns a tuple of modified filepath and reload delay.
@@ -87,7 +98,7 @@ class Watcher:
 
         # clean filepath
         self.filepath = None
-        delays = set()
+        delays: set[float] = set()
         for path in self._tasks:
             item = self._tasks[path]
             self._task_mtimes = item['mtimes']
@@ -109,18 +120,18 @@ class Watcher:
                         func()
 
         if delays:
-            delay = max(delays)
-        else:
-            delay = None
-        return self.filepath, delay
+            return self.filepath, max(delays)
+        return self.filepath, None
 
-    def is_changed(self, path, ignore=None):
+    def is_changed(
+        self, path: str, ignore: IgnoreFunc | None = None
+    ) -> bool | list[str]:
         """Check if any filepaths have been added, modified, or removed.
 
         Updates filepath modification times in self._task_mtimes.
         """
         self._new_mtimes = {}
-        changed = False
+        changed: bool | list[str] = False
 
         if os.path.isfile(path):
             changed = self.is_file_changed(path, ignore)
@@ -135,7 +146,7 @@ class Watcher:
         self._task_mtimes.update(self._new_mtimes)
         return changed
 
-    def is_file_removed(self):
+    def is_file_removed(self) -> bool:
         """Check if any filepaths have been removed since last check.
 
         Deletes removed paths from self._task_mtimes.
@@ -152,7 +163,9 @@ class Watcher:
             self.filepath = path
         return True
 
-    def is_file_changed(self, path, ignore=None):
+    def is_file_changed(
+        self, path: str, ignore: IgnoreFunc | None = None
+    ) -> bool:
         """Check if filepath has been added or modified since last check.
 
         Updates filepath modification times in self._new_mtimes.
@@ -182,7 +195,9 @@ class Watcher:
         self._new_mtimes[path] = mtime
         return False
 
-    def is_folder_changed(self, path, ignore=None):
+    def is_folder_changed(
+        self, path: str, ignore: IgnoreFunc | None = None
+    ) -> bool:
         """Check if directory path has any changed filepaths."""
         for root, dirs, files in os.walk(path, followlinks=True):
             for d in self.ignored_dirs:
@@ -194,7 +209,9 @@ class Watcher:
                     return True
         return False
 
-    def get_changed_glob_files(self, path, ignore=None):
+    def get_changed_glob_files(
+        self, path: str, ignore: IgnoreFunc | None = None
+    ) -> list[str]:
         """Check if glob path has any changed filepaths."""
         files = glob.glob(path, recursive=True)
         changed_files = [f for f in files if self.is_file_changed(f, ignore)]
@@ -202,22 +219,31 @@ class Watcher:
 
 
 class INotifyWatcher(Watcher):
-    def __init__(self):
+    def __init__(self) -> None:
         Watcher.__init__(self)
 
         self.wm = pyinotify.WatchManager()
-        self.notifier = None
-        self.callback = None
+        self.notifier: Any = None
+        self.callback: Callable[[], None] | None = None
 
-    def watch(self, path, func=None, delay=None, ignore=None):
+    @override
+    def watch(
+        self,
+        path: str,
+        func: TaskFunc | None = None,
+        delay: Delay = None,
+        ignore: IgnoreFunc | None = None,
+    ) -> None:
         flag = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY
         self.wm.add_watch(path, flag, rec=True, do_glob=True, auto_add=True)
         Watcher.watch(self, path, func, delay, ignore)
 
-    def inotify_event(self, event):
+    def inotify_event(self, event: Any) -> None:
+        assert self.callback is not None
         self.callback()
 
-    def start(self, callback):
+    @override
+    def start(self, callback: Callable[[], None]) -> bool:
         if not self.notifier:
             self.callback = callback
 
@@ -230,7 +256,7 @@ class INotifyWatcher(Watcher):
         return True
 
 
-def get_watcher_class():
+def get_watcher_class() -> type[Watcher]:
     if pyinotify is None or not hasattr(pyinotify, 'TornadoAsyncNotifier'):
         return Watcher
     return INotifyWatcher

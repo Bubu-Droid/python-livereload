@@ -53,3 +53,16 @@ packages = ["src/livereload"]
 
 [tool.hatch.build.targets.sdist]
 include = ["/src", "/tests", "/docs", "/CHANGES.rst"]
+
+[tool.mypy]
+files = ["src"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["pyinotify", "django.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# BaseCommand is untyped without django-stubs.
+module = "livereload.management.*"
+disallow_subclassing_any = false

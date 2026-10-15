@@ -7,12 +7,15 @@
     :copyright: (c) 2013 by Hsiaoming Yang
     :license: BSD, see LICENSE for more details.
 """
+from __future__ import annotations
+
 import datetime
 import hashlib
 import os
 import stat
 import time
 import logging
+from typing import TYPE_CHECKING, Any, ClassVar
 from tornado import web
 from tornado import ioloop
 from tornado import escape
@@ -20,27 +23,34 @@ from tornado.log import gen_log
 from tornado.websocket import WebSocketHandler
 from tornado.util import ObjectDict
 
+from ._typing import override
+
+if TYPE_CHECKING:
+    from .watcher import Watcher
+
 logger = logging.getLogger('livereload')
 
 
 class LiveReloadHandler(WebSocketHandler):
     DEFAULT_RELOAD_TIME = 3
-    waiters = set()
-    watcher = None
-    live_css = None
-    _last_reload_time = None
+    waiters: ClassVar[set[LiveReloadHandler]] = set()
+    watcher: ClassVar[Watcher | None] = None
+    live_css: ClassVar[bool | None] = None
+    _last_reload_time: ClassVar[float | None] = None
 
-    def allow_draft76(self):
+    def allow_draft76(self) -> bool:
         return True
 
-    def check_origin(self, origin):
+    @override
+    def check_origin(self, origin: str) -> bool:
         return True
 
-    def on_close(self):
+    @override
+    def on_close(self) -> None:
         if self in LiveReloadHandler.waiters:
             LiveReloadHandler.waiters.remove(self)
 
-    def send_message(self, message):
+    def send_message(self, message: dict[str, Any] | str) -> None:
         if isinstance(message, dict):
             message = escape.json_encode(message)
 
@@ -50,9 +60,11 @@ class LiveReloadHandler(WebSocketHandler):
             logger.error('Error sending message', exc_info=True)
 
     @classmethod
-    def start_tasks(cls):
+    def start_tasks(cls) -> None:
         if cls._last_reload_time:
             return
+
+        assert cls.watcher is not None
 
         if not cls.watcher._tasks:
             logger.info('Watch current working directory')
@@ -65,11 +77,13 @@ class LiveReloadHandler(WebSocketHandler):
             ioloop.PeriodicCallback(cls.poll_tasks, 800).start()
 
     @classmethod
-    def poll_tasks(cls):
+    def poll_tasks(cls) -> None:
+        assert cls.watcher is not None
+        assert cls._last_reload_time is not None
         filepath, delay = cls.watcher.examine()
         if not filepath or delay == 'forever' or not cls.waiters:
             return
-        reload_time = LiveReloadHandler.DEFAULT_RELOAD_TIME
+        reload_time: float = LiveReloadHandler.DEFAULT_RELOAD_TIME
 
         if delay:
             reload_time = max(3 - delay, 1)
@@ -88,7 +102,8 @@ class LiveReloadHandler(WebSocketHandler):
             cls.reload_waiters()
 
     @classmethod
-    def reload_waiters(cls, path=None):
+    def reload_waiters(cls, path: str | None = None) -> None:
+        assert cls.watcher is not None
         logger.info(
             'Reload %s waiters: %s',
             len(cls.waiters),
@@ -113,15 +128,16 @@ class LiveReloadHandler(WebSocketHandler):
                 logger.error('Error sending message', exc_info=True)
                 cls.waiters.remove(waiter)
 
-    def on_message(self, message):
+    @override
+    def on_message(self, message: str | bytes) -> None:
         """Handshake with livereload.js
 
         1. client send 'hello'
         2. server reply 'hello'
         3. client send 'info'
         """
-        message = ObjectDict(escape.json_decode(message))
-        if message.command == 'hello':
+        data = ObjectDict(escape.json_decode(message))
+        if data.command == 'hello':
             handshake = {
                 'command': 'hello',
                 'protocols': [
@@ -131,16 +147,16 @@ class LiveReloadHandler(WebSocketHandler):
             }
             self.send_message(handshake)
 
-        if message.command == 'info' and 'url' in message:
-            logger.info('Browser Connected: %s' % message.url)
+        if data.command == 'info' and 'url' in data:
+            logger.info('Browser Connected: %s' % data.url)
             LiveReloadHandler.waiters.add(self)
 
 
 class MtimeStaticFileHandler(web.StaticFileHandler):
-    _static_mtimes = {}  # type: typing.Dict
+    _static_mtimes: ClassVar[dict[str, datetime.datetime | None]] = {}
 
     @classmethod
-    def get_content_modified_time(cls, abspath):
+    def get_content_modified_time(cls, abspath: str) -> datetime.datetime:
         """Returns the time that ``abspath`` was last modified.
 
         May be overridden in subclasses.  Should return a `~datetime.datetime`
@@ -152,7 +168,8 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
         return modified
 
     @classmethod
-    def get_content_version(cls, abspath):
+    @override
+    def get_content_version(cls, abspath: str) -> str:
         """Returns a version string for the resource at the given path.
 
         This class method may be overridden by subclasses.  The
@@ -175,8 +192,11 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
         return hasher.hexdigest()
 
     @classmethod
-    def _get_cached_version(cls, abs_path):
-        def _load_version(abs_path):
+    @override
+    def _get_cached_version(cls, abs_path: str) -> str | None:
+        def _load_version(
+            abs_path: str,
+        ) -> tuple[datetime.datetime | None, str | None]:
             try:
                 hsh = cls.get_content_version(abs_path)
                 mtm = cls.get_content_modified_time(abs_path)
@@ -212,7 +232,8 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
 
 class LiveReloadJSHandler(web.RequestHandler):
 
-    def get(self):
+    @override
+    def get(self) -> None:
         self.set_header('Content-Type', 'application/javascript')
         root = os.path.abspath(os.path.dirname(__file__))
         js_file = os.path.join(root, 'vendors/livereload.js')
@@ -221,12 +242,14 @@ class LiveReloadJSHandler(web.RequestHandler):
 
 
 class ForceReloadHandler(web.RequestHandler):
-    def get(self):
+    @override
+    def get(self) -> None:
         path = self.get_argument('path', default=None) or '*'
         LiveReloadHandler.reload_waiters(path)
         self.write('ok')
 
 
 class StaticFileHandler(MtimeStaticFileHandler):
-    def should_return_304(self):
+    @override
+    def should_return_304(self) -> bool:
         return False

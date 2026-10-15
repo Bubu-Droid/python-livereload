@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 
 import tornado.log
@@ -48,7 +50,7 @@ parser.add_argument(
 )
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     if args.debug:
