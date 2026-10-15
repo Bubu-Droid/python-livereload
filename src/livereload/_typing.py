@@ -1,8 +1,8 @@
 """
-    livereload._typing
-    ~~~~~~~~~~~~~~~~~~
+livereload._typing
+~~~~~~~~~~~~~~~~~~
 
-    Typing helpers shared across the package.
+Typing helpers shared across the package.
 """
 
 from __future__ import annotations
@@ -18,8 +18,9 @@ else:
     def override(func):
         return func
 
+
 #: Seconds to wait before reloading, or ``'forever'`` to never reload.
-Delay = Union[float, Literal['forever'], None]
+Delay = Union[float, Literal["forever"], None]
 
 #: Called with the path being checked; return True to ignore it.
 IgnoreFunc = Callable[[str], bool]
@@ -27,4 +28,4 @@ IgnoreFunc = Callable[[str], bool]
 #: A watcher task: called with no arguments, or with the changed paths.
 TaskFunc = Callable[..., object]
 
-__all__ = ['Delay', 'IgnoreFunc', 'TaskFunc', 'override']
+__all__ = ["Delay", "IgnoreFunc", "TaskFunc", "override"]

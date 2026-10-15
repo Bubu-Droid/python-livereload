@@ -27,3 +27,5 @@ docs/_build
 example/style.css
 tests/tmp
 cover/
+
+PLAN.md

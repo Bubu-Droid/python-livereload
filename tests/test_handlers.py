@@ -7,12 +7,11 @@ from livereload.handlers import MtimeStaticFileHandler
 
 
 class TestMtimeStaticFileHandler(unittest.TestCase):
-
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
-        self.path = os.path.join(self.tmpdir, 'style.css')
-        with open(self.path, 'w') as f:
-            f.write('body {}')
+        self.path = os.path.join(self.tmpdir, "style.css")
+        with open(self.path, "w") as f:
+            f.write("body {}")
 
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
@@ -25,8 +24,8 @@ class TestMtimeStaticFileHandler(unittest.TestCase):
 
     def test_cached_version_changes_with_mtime(self):
         first = MtimeStaticFileHandler._get_cached_version(self.path)
-        with open(self.path, 'w') as f:
-            f.write('body { color: red }')
+        with open(self.path, "w") as f:
+            f.write("body { color: red }")
         stat = os.stat(self.path)
         os.utime(self.path, (stat.st_atime, stat.st_mtime + 10))
         second = MtimeStaticFileHandler._get_cached_version(self.path)

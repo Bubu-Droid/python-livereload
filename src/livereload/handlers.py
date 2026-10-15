@@ -1,34 +1,34 @@
 """
-    livereload.handlers
-    ~~~~~~~~~~~~~~~~~~~
+livereload.handlers
+~~~~~~~~~~~~~~~~~~~
 
-    HTTP and WebSocket handlers for livereload.
+HTTP and WebSocket handlers for livereload.
 
-    :copyright: (c) 2013 by Hsiaoming Yang
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2013 by Hsiaoming Yang
+:license: BSD, see LICENSE for more details.
 """
+
 from __future__ import annotations
 
 import datetime
 import hashlib
+import logging
 import os
 import stat
 import time
-import logging
 from typing import TYPE_CHECKING, Any, ClassVar
-from tornado import web
-from tornado import ioloop
-from tornado import escape
+
+from tornado import escape, ioloop, web
 from tornado.log import gen_log
-from tornado.websocket import WebSocketHandler
 from tornado.util import ObjectDict
+from tornado.websocket import WebSocketHandler
 
 from ._typing import override
 
 if TYPE_CHECKING:
     from .watcher import Watcher
 
-logger = logging.getLogger('livereload')
+logger = logging.getLogger("livereload")
 
 
 class LiveReloadHandler(WebSocketHandler):
@@ -57,7 +57,7 @@ class LiveReloadHandler(WebSocketHandler):
         try:
             self.write_message(message)
         except Exception:
-            logger.error('Error sending message', exc_info=True)
+            logger.error("Error sending message", exc_info=True)
 
     @classmethod
     def start_tasks(cls) -> None:
@@ -67,13 +67,13 @@ class LiveReloadHandler(WebSocketHandler):
         assert cls.watcher is not None
 
         if not cls.watcher._tasks:
-            logger.info('Watch current working directory')
+            logger.info("Watch current working directory")
             cls.watcher.watch(os.getcwd())
 
         cls._last_reload_time = time.time()
-        logger.info('Start watching changes')
+        logger.info("Start watching changes")
         if not cls.watcher.start(cls.poll_tasks):
-            logger.info('Start detecting changes')
+            logger.info("Start detecting changes")
             ioloop.PeriodicCallback(cls.poll_tasks, 800).start()
 
     @classmethod
@@ -81,19 +81,19 @@ class LiveReloadHandler(WebSocketHandler):
         assert cls.watcher is not None
         assert cls._last_reload_time is not None
         filepath, delay = cls.watcher.examine()
-        if not filepath or delay == 'forever' or not cls.waiters:
+        if not filepath or delay == "forever" or not cls.waiters:
             return
         reload_time: float = LiveReloadHandler.DEFAULT_RELOAD_TIME
 
         if delay:
             reload_time = max(3 - delay, 1)
-        if filepath == '__livereload__':
+        if filepath == "__livereload__":
             reload_time = 0
 
         if time.time() - cls._last_reload_time < reload_time:
             # if you changed lot of files in one time
             # it will refresh too many times
-            logger.info('Ignore: %s', filepath)
+            logger.info("Ignore: %s", filepath)
             return
         if delay:
             loop = ioloop.IOLoop.current()
@@ -105,19 +105,19 @@ class LiveReloadHandler(WebSocketHandler):
     def reload_waiters(cls, path: str | None = None) -> None:
         assert cls.watcher is not None
         logger.info(
-            'Reload %s waiters: %s',
+            "Reload %s waiters: %s",
             len(cls.waiters),
             cls.watcher.filepath,
         )
 
         if path is None:
-            path = cls.watcher.filepath or '*'
+            path = cls.watcher.filepath or "*"
 
         msg = {
-            'command': 'reload',
-            'path': path,
-            'liveCSS': cls.live_css,
-            'liveImg': True,
+            "command": "reload",
+            "path": path,
+            "liveCSS": cls.live_css,
+            "liveImg": True,
         }
 
         cls._last_reload_time = time.time()
@@ -125,7 +125,7 @@ class LiveReloadHandler(WebSocketHandler):
             try:
                 waiter.write_message(msg)
             except Exception:
-                logger.error('Error sending message', exc_info=True)
+                logger.error("Error sending message", exc_info=True)
                 cls.waiters.remove(waiter)
 
     @override
@@ -137,18 +137,18 @@ class LiveReloadHandler(WebSocketHandler):
         3. client send 'info'
         """
         data = ObjectDict(escape.json_decode(message))
-        if data.command == 'hello':
+        if data.command == "hello":
             handshake = {
-                'command': 'hello',
-                'protocols': [
-                    'http://livereload.com/protocols/official-7',
+                "command": "hello",
+                "protocols": [
+                    "http://livereload.com/protocols/official-7",
                 ],
-                'serverName': 'livereload-tornado',
+                "serverName": "livereload-tornado",
             }
             self.send_message(handshake)
 
-        if data.command == 'info' and 'url' in data:
-            logger.info('Browser Connected: %s', data.url)
+        if data.command == "info" and "url" in data:
+            logger.info("Browser Connected: %s", data.url)
             LiveReloadHandler.waiters.add(self)
 
 
@@ -163,8 +163,7 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
         object or None.
         """
         stat_result = os.stat(abspath)
-        modified = datetime.datetime.utcfromtimestamp(
-            stat_result[stat.ST_MTIME])
+        modified = datetime.datetime.utcfromtimestamp(stat_result[stat.ST_MTIME])
         return modified
 
     @classmethod
@@ -231,22 +230,21 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
 
 
 class LiveReloadJSHandler(web.RequestHandler):
-
     @override
     def get(self) -> None:
-        self.set_header('Content-Type', 'application/javascript')
+        self.set_header("Content-Type", "application/javascript")
         root = os.path.abspath(os.path.dirname(__file__))
-        js_file = os.path.join(root, 'vendors/livereload.js')
-        with open(js_file, 'rb') as f:
+        js_file = os.path.join(root, "vendors/livereload.js")
+        with open(js_file, "rb") as f:
             self.write(f.read())
 
 
 class ForceReloadHandler(web.RequestHandler):
     @override
     def get(self) -> None:
-        path = self.get_argument('path', default=None) or '*'
+        path = self.get_argument("path", default=None) or "*"
         LiveReloadHandler.reload_waiters(path)
-        self.write('ok')
+        self.write("ok")
 
 
 class StaticFileHandler(MtimeStaticFileHandler):

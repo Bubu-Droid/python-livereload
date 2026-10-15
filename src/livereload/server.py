@@ -1,11 +1,11 @@
 """
-    livereload.server
-    ~~~~~~~~~~~~~~~~~
+livereload.server
+~~~~~~~~~~~~~~~~~
 
-    WSGI app server for livereload.
+WSGI app server for livereload.
 
-    :copyright: (c) 2013 - 2015 by Hsiaoming Yang
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2013 - 2015 by Hsiaoming Yang
+:license: BSD, see LICENSE for more details.
 """
 
 from __future__ import annotations
@@ -43,13 +43,14 @@ if TYPE_CHECKING:
 
     from .watcher import Watcher
 
-if sys.version_info >= (3, 8) and sys.platform == 'win32':
+if sys.version_info >= (3, 8) and sys.platform == "win32":
     import asyncio
+
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-logger = logging.getLogger('livereload')
+logger = logging.getLogger("livereload")
 
-HEAD_END_RE = re.compile(br'</head>', re.IGNORECASE)
+HEAD_END_RE = re.compile(rb"</head>", re.IGNORECASE)
 
 
 def inject_script_at_head(content: bytes, script: bytes) -> bytes:
@@ -57,22 +58,22 @@ def inject_script_at_head(content: bytes, script: bytes) -> bytes:
     return HEAD_END_RE.sub(lambda match: script + match.group(0), content, count=1)
 
 
-def set_header(
-    fn: Callable[..., None], name: str, value: str
-) -> Callable[..., None]:
+def set_header(fn: Callable[..., None], name: str, value: str) -> Callable[..., None]:
     """Helper Function to Add HTTP headers to the server"""
+
     def set_default_headers(
         self: web.RequestHandler, *args: Any, **kwargs: Any
     ) -> None:
         fn(self, *args, **kwargs)
         self.set_header(name, value)
+
     return set_default_headers
 
 
 def shell(
     cmd: str | list[str] | tuple[str, ...],
     output: str | None = None,
-    mode: str = 'w',
+    mode: str = "w",
     cwd: str | None = None,
     shell: bool = False,
 ) -> Callable[[], OSError | str | None]:
@@ -104,8 +105,7 @@ def shell(
 
     def run_shell() -> OSError | str | None:
         try:
-            p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=cwd,
-                      shell=shell)
+            p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell)
         except OSError as e:
             logger.error(e)
             if e.errno == errno.ENOENT:  # file (command) not found
@@ -142,14 +142,14 @@ class LiveScriptInjector(web.OutputTransform):
         is_html = "html" in headers.get("Content-Type", "")
         if is_html and HEAD_END_RE.search(chunk):
             chunk = inject_script_at_head(chunk, self.script)
-            if 'Content-Length' in headers:
-                length = int(headers['Content-Length']) + len(self.script)
-                headers['Content-Length'] = str(length)
+            if "Content-Length" in headers:
+                length = int(headers["Content-Length"]) + len(self.script)
+                headers["Content-Length"] = str(length)
         return status_code, headers, chunk
 
 
 class LiveScriptContainer(WSGIContainer):
-    def __init__(self, wsgi_app: WSGIApplication, script: bytes = b'') -> None:
+    def __init__(self, wsgi_app: WSGIApplication, script: bytes = b"") -> None:
         self.wsgi_app = wsgi_app
         self.script = script
 
@@ -172,7 +172,8 @@ class LiveScriptContainer(WSGIContainer):
             return response.append
 
         app_response = self.wsgi_app(
-            WSGIContainer(self.wsgi_app).environ(request), start_response)
+            WSGIContainer(self.wsgi_app).environ(request), start_response
+        )
         try:
             response.extend(app_response)
             body = b"".join(response)
@@ -182,7 +183,7 @@ class LiveScriptContainer(WSGIContainer):
         if not data:
             raise Exception("WSGI app did not call start_response")
 
-        status, reason = data["status"].split(' ', 1)
+        status, reason = data["status"].split(" ", 1)
         status_code = int(status)
         headers: list[tuple[str, str]] = data["headers"]
         header_set = {k.lower() for (k, v) in headers}
@@ -193,22 +194,19 @@ class LiveScriptContainer(WSGIContainer):
 
         if status_code != 304:
             if "content-type" not in header_set:
-                headers.append((
-                    "Content-Type",
-                    "application/octet-stream; charset=UTF-8"
-                ))
+                headers.append(
+                    ("Content-Type", "application/octet-stream; charset=UTF-8")
+                )
             if "content-length" not in header_set:
                 headers.append(("Content-Length", str(len(body))))
 
         if "server" not in header_set:
             headers.append(("Server", "LiveServer"))
 
-        start_line = httputil.ResponseStartLine(
-            "HTTP/1.1", status_code, reason
-        )
+        start_line = httputil.ResponseStartLine("HTTP/1.1", status_code, reason)
         header_obj = httputil.HTTPHeaders()
         for key, value in headers:
-            if key.lower() == 'content-length':
+            if key.lower() == "content-length":
                 value = str(len(body))
             header_obj.add(key, value)
         assert request.connection is not None
@@ -231,6 +229,7 @@ class Server:
                     pyinotify and use INotifyWatcher() to avoid wasted
                     CPU usage.
     """
+
     default_filename: str
 
     def __init__(
@@ -262,7 +261,8 @@ class Server:
         :param value: The value of the header field to be defined.
         """
         StaticFileHandler.set_default_headers = set_header(  # type: ignore[method-assign]
-                StaticFileHandler.set_default_headers, name, value)
+            StaticFileHandler.set_default_headers, name, value
+        )
         self.SFH = StaticFileHandler
 
     def watch(
@@ -315,9 +315,9 @@ class Server:
             debug = True
 
         live_handlers: list[Any] = [
-            (r'/livereload', LiveReloadHandler),
-            (r'/forcereload', ForceReloadHandler),
-            (r'/livereload.js', LiveReloadJSHandler)
+            (r"/livereload", LiveReloadHandler),
+            (r"/forcereload", ForceReloadHandler),
+            (r"/livereload.js", LiveReloadJSHandler),
         ]
 
         # The livereload.js snippet.
@@ -326,19 +326,22 @@ class Server:
         script_template = (
             '<script type="text/javascript">(function(){'
             'var s=document.createElement("script");'
-            'var port=%s;'
+            "var port=%s;"
             's.src="//"+window.location.hostname+":"+port'
             '+ "/livereload.js?port=" + port;'
-            'document.head.appendChild(s);'
-            '})();</script>'
+            "document.head.appendChild(s);"
+            "})();</script>"
         )
         if liveport:
             live_script = escape.utf8(script_template % liveport)
         else:
-            live_script = escape.utf8(script_template % (
-                "(window.location.port || "
-                "(window.location.protocol == 'https:' ? 443: 80))"
-            ))
+            live_script = escape.utf8(
+                script_template
+                % (
+                    "(window.location.port || "
+                    "(window.location.protocol == 'https:' ? 443: 80))"
+                )
+            )
 
         web_handlers = self.get_web_handlers(live_script)
 
@@ -348,16 +351,12 @@ class Server:
         if not liveport:
             handlers = live_handlers + web_handlers
             app = web.Application(
-                handlers=handlers,
-                debug=debug,
-                transforms=[ConfiguredTransform]
+                handlers=handlers, debug=debug, transforms=[ConfiguredTransform]
             )
             app.listen(port, address=host)
         else:
             app = web.Application(
-                handlers=web_handlers,
-                debug=debug,
-                transforms=[ConfiguredTransform]
+                handlers=web_handlers, debug=debug, transforms=[ConfiguredTransform]
             )
             app.listen(port, address=host)
             live = web.Application(handlers=live_handlers, debug=False)
@@ -366,12 +365,16 @@ class Server:
     def get_web_handlers(self, script: bytes) -> list[Any]:
         if self.app:
             fallback = LiveScriptContainer(self.app, script)
-            return [(r'.*', web.FallbackHandler, {'fallback': fallback})]
+            return [(r".*", web.FallbackHandler, {"fallback": fallback})]
         return [
-            (r'/(.*)', self.SFH, {
-                'path': self.root or '.',
-                'default_filename': self.default_filename,
-            }),
+            (
+                r"/(.*)",
+                self.SFH,
+                {
+                    "path": self.root or ".",
+                    "default_filename": self.default_filename,
+                },
+            ),
         ]
 
     def serve(
@@ -385,7 +388,7 @@ class Server:
         restart_delay: float = 2,
         open_url_delay: float | None = None,
         live_css: bool = True,
-        default_filename: str = 'index.html',
+        default_filename: str = "index.html",
     ) -> None:
         """Start serve the server with the given port.
 
@@ -401,31 +404,31 @@ class Server:
                          Defaults to True
         :param default_filename: launch this file from the selected root on startup
         """
-        host = host or '127.0.0.1'
+        host = host or "127.0.0.1"
         if root is not None:
             self.root = root
 
         self._setup_logging()
-        logger.info(f'Serving on http://{host}:{port}')
+        logger.info(f"Serving on http://{host}:{port}")
 
         self.default_filename = default_filename
 
-        self.application(
-            port, host, liveport=liveport, debug=debug, live_css=live_css)
+        self.application(port, host, liveport=liveport, debug=debug, live_css=live_css)
 
         # Async open web browser after 5 sec timeout
         if open_url:
-            logger.error('Use `open_url_delay` instead of `open_url`')
+            logger.error("Use `open_url_delay` instead of `open_url`")
         if open_url_delay is not None:
 
             def opener() -> None:
                 assert open_url_delay is not None
                 time.sleep(open_url_delay)
-                webbrowser.open(f'http://{host}:{port}')
+                webbrowser.open(f"http://{host}:{port}")
+
             threading.Thread(target=opener).start()
 
         try:
-            self.watcher._changes.append(('__livereload__', restart_delay))
+            self.watcher._changes.append(("__livereload__", restart_delay))
             LiveReloadHandler.start_tasks()
             # When autoreload is triggered, initiate a shutdown of the IOLoop
             add_reload_hook(lambda: IOLoop.instance().stop())
@@ -434,7 +437,7 @@ class Server:
             # Once the IOLoop is stopped, the IOLoop can be closed to free resources
             IOLoop.current().close(all_fds=True)
         except KeyboardInterrupt:
-            logger.info('Shutting down...')
+            logger.info("Shutting down...")
 
     def _setup_logging(self) -> None:
         logger.setLevel(logging.INFO)
@@ -444,4 +447,4 @@ class Server:
         logger.addHandler(channel)
 
         # need a tornado logging handler to prevent IOLoop._setup_logging
-        logging.getLogger('tornado').addHandler(channel)
+        logging.getLogger("tornado").addHandler(channel)
