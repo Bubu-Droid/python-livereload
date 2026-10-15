@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from typing import cast
 
 import tornado.log
 
@@ -45,16 +46,22 @@ parser.add_argument(
 
 def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
+    host = cast("str", args.host)
+    port = cast("int", args.port)
+    directory = cast("str", args.directory)
+    target = cast("str | None", args.target)
+    wait = cast("float", args.wait)
+    open_url_delay = cast("float | None", args.open_url_delay)
 
-    if args.debug:
+    if cast("bool", args.debug):
         tornado.log.enable_pretty_logging()
 
     # Create a new application
     server = Server()
-    server.watcher.watch(args.target or args.directory, delay=args.wait)
+    server.watcher.watch(target or directory, delay=wait)
     server.serve(
-        host=args.host,
-        port=args.port,
-        root=args.directory,
-        open_url_delay=args.open_url_delay,
+        host=host,
+        port=port,
+        root=directory,
+        open_url_delay=open_url_delay,
     )

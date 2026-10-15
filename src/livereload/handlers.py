@@ -16,11 +16,10 @@ import logging
 import os
 import stat
 import time
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from tornado import escape, ioloop, web
 from tornado.log import gen_log
-from tornado.util import ObjectDict
 from tornado.websocket import WebSocketHandler
 
 from ._typing import override
@@ -32,7 +31,7 @@ logger = logging.getLogger("livereload")
 
 
 class LiveReloadHandler(WebSocketHandler):
-    DEFAULT_RELOAD_TIME = 3
+    DEFAULT_RELOAD_TIME: ClassVar[int] = 3
     waiters: ClassVar[set[LiveReloadHandler]] = set()
     watcher: ClassVar[Watcher | None] = None
     live_css: ClassVar[bool | None] = None
@@ -50,7 +49,7 @@ class LiveReloadHandler(WebSocketHandler):
         if self in LiveReloadHandler.waiters:
             LiveReloadHandler.waiters.remove(self)
 
-    def send_message(self, message: dict[str, Any] | str) -> None:
+    def send_message(self, message: dict[str, object] | str) -> None:
         if isinstance(message, dict):
             message = escape.json_encode(message)
 
@@ -66,7 +65,7 @@ class LiveReloadHandler(WebSocketHandler):
 
         assert cls.watcher is not None
 
-        if not cls.watcher._tasks:
+        if not cls.watcher._tasks:  # pyright: ignore[reportPrivateUsage]
             logger.info("Watch current working directory")
             cls.watcher.watch(os.getcwd())
 
@@ -97,7 +96,8 @@ class LiveReloadHandler(WebSocketHandler):
             return
         if delay:
             loop = ioloop.IOLoop.current()
-            loop.call_later(delay, cls.reload_waiters)
+            # tornado types the callback as a bare ``Callable``
+            loop.call_later(delay, cls.reload_waiters)  # pyright: ignore[reportUnknownMemberType]
         else:
             cls.reload_waiters()
 
@@ -136,9 +136,9 @@ class LiveReloadHandler(WebSocketHandler):
         2. server reply 'hello'
         3. client send 'info'
         """
-        data = ObjectDict(escape.json_decode(message))
-        if data.command == "hello":
-            handshake = {
+        data = cast("dict[str, object]", escape.json_decode(message))
+        if data.get("command") == "hello":
+            handshake: dict[str, object] = {
                 "command": "hello",
                 "protocols": [
                     "http://livereload.com/protocols/official-7",
@@ -147,8 +147,8 @@ class LiveReloadHandler(WebSocketHandler):
             }
             self.send_message(handshake)
 
-        if data.command == "info" and "url" in data:
-            logger.info("Browser Connected: %s", data.url)
+        if data.get("command") == "info" and "url" in data:
+            logger.info("Browser Connected: %s", data["url"])
             LiveReloadHandler.waiters.add(self)
 
 
@@ -163,8 +163,11 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
         object or None.
         """
         stat_result = os.stat(abspath)
-        modified = datetime.datetime.utcfromtimestamp(stat_result[stat.ST_MTIME])
-        return modified
+        modified = datetime.datetime.fromtimestamp(
+            stat_result[stat.ST_MTIME], datetime.timezone.utc
+        )
+        # Naive UTC, as ``utcfromtimestamp`` used to return.
+        return modified.replace(tzinfo=None)
 
     @classmethod
     @override
@@ -236,7 +239,8 @@ class LiveReloadJSHandler(web.RequestHandler):
         root = os.path.abspath(os.path.dirname(__file__))
         js_file = os.path.join(root, "vendors/livereload.js")
         with open(js_file, "rb") as f:
-            self.write(f.read())
+            # tornado types ``write`` with a bare ``dict``
+            self.write(f.read())  # pyright: ignore[reportUnknownMemberType]
 
 
 class ForceReloadHandler(web.RequestHandler):
@@ -244,7 +248,7 @@ class ForceReloadHandler(web.RequestHandler):
     def get(self) -> None:
         path = self.get_argument("path", default=None) or "*"
         LiveReloadHandler.reload_waiters(path)
-        self.write("ok")
+        self.write("ok")  # pyright: ignore[reportUnknownMemberType]
 
 
 class StaticFileHandler(MtimeStaticFileHandler):

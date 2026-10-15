@@ -15,14 +15,29 @@ import logging
 import os
 import time
 from inspect import signature
-from typing import Any, Callable
+from typing import TYPE_CHECKING, TypedDict, cast
 
-from ._typing import Delay, IgnoreFunc, TaskFunc, override
+from ._typing import override
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from pyinotify import Event, TornadoAsyncNotifier, WatchManager
+
+    from ._typing import Delay, IgnoreFunc, TaskFunc
 
 try:
     import pyinotify
 except ImportError:
-    pyinotify = None
+    pyinotify = None  # type: ignore[assignment]
+
+
+class _Task(TypedDict):
+    func: TaskFunc | None
+    delay: Delay
+    ignore: IgnoreFunc | None
+    mtimes: dict[str, float]
+
 
 logger = logging.getLogger("livereload")
 
@@ -31,7 +46,7 @@ class Watcher:
     """A file watcher registry."""
 
     def __init__(self) -> None:
-        self._tasks: dict[str, dict[str, Any]] = {}
+        self._tasks: dict[str, _Task] = {}
 
         # modification time of filepaths for each task,
         # before and after checking for changes
@@ -43,10 +58,10 @@ class Watcher:
 
         # filepath that is changed
         self.filepath: str | None = None
-        self._start = time.time()
+        self._start: float = time.time()
 
         # list of ignored dirs
-        self.ignored_dirs = [".git", ".hg", ".svn", ".cvs"]
+        self.ignored_dirs: list[str] = [".git", ".hg", ".svn", ".cvs"]
 
     def ignore_dirs(self, *args: str) -> None:
         self.ignored_dirs.extend(args)
@@ -87,6 +102,7 @@ class Watcher:
     def start(self, callback: Callable[[], None]) -> bool:
         """Start the watcher running, calling callback when changes are
         observed. If this returns False, regular polling will be used."""
+        del callback  # the base watcher relies on polling
         return False
 
     def examine(self) -> tuple[str | None, Delay]:
@@ -110,9 +126,9 @@ class Watcher:
                 if delay and isinstance(delay, float):
                     delays.add(delay)
                 if func:
-                    name = getattr(func, "name", None)
+                    name = cast("str | None", getattr(func, "name", None))
                     if not name:
-                        name = getattr(func, "__name__", "anonymous")
+                        name = cast("str", getattr(func, "__name__", "anonymous"))
                     logger.info(f"Running task: {name} (delay: {delay})")
                     takes_args = len(signature(func).parameters) > 0
                     if takes_args and isinstance(changed, list):
@@ -219,8 +235,9 @@ class INotifyWatcher(Watcher):
     def __init__(self) -> None:
         Watcher.__init__(self)
 
-        self.wm = pyinotify.WatchManager()
-        self.notifier: Any = None
+        assert pyinotify is not None
+        self.wm: WatchManager = pyinotify.WatchManager()
+        self.notifier: TornadoAsyncNotifier | None = None
         self.callback: Callable[[], None] | None = None
 
     @override
@@ -231,16 +248,19 @@ class INotifyWatcher(Watcher):
         delay: Delay = None,
         ignore: IgnoreFunc | None = None,
     ) -> None:
+        assert pyinotify is not None
         flag = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY
         self.wm.add_watch(path, flag, rec=True, do_glob=True, auto_add=True)
         Watcher.watch(self, path, func, delay, ignore)
 
-    def inotify_event(self, event: Any) -> None:
+    def inotify_event(self, event: Event) -> None:
+        del event  # any event triggers a check of all watched paths
         assert self.callback is not None
         self.callback()
 
     @override
     def start(self, callback: Callable[[], None]) -> bool:
+        assert pyinotify is not None
         if not self.notifier:
             self.callback = callback
 

@@ -18,7 +18,7 @@ import threading
 import webbrowser
 import re
 from subprocess import Popen, PIPE
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from tornado.wsgi import WSGIContainer
 from tornado.ioloop import IOLoop
@@ -30,23 +30,30 @@ from tornado.log import LogFormatter
 from .handlers import LiveReloadHandler, LiveReloadJSHandler
 from .handlers import ForceReloadHandler, StaticFileHandler
 from .watcher import get_watcher_class
-from ._typing import Delay, IgnoreFunc, TaskFunc, override
+from ._typing import override
 
 import sys
 
 import errno
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import TracebackType
 
     from _typeshed.wsgi import WSGIApplication
+    from tornado.routing import _RuleList  # pyright: ignore[reportPrivateUsage]
 
+    from ._typing import Delay, IgnoreFunc, TaskFunc
     from .watcher import Watcher
 
-if sys.version_info >= (3, 8) and sys.platform == "win32":
+# Event loop policies are deprecated in 3.14 and removed in 3.16; tornado
+# supports the default Windows proactor loop on its own since 6.1.
+if sys.platform == "win32" and sys.version_info < (3, 14):
     import asyncio
 
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(  # pyright: ignore[reportDeprecated]
+        asyncio.WindowsSelectorEventLoopPolicy()
+    )
 
 logger = logging.getLogger("livereload")
 
@@ -62,7 +69,7 @@ def set_header(fn: Callable[..., None], name: str, value: str) -> Callable[..., 
     """Helper Function to Add HTTP headers to the server"""
 
     def set_default_headers(
-        self: web.RequestHandler, *args: Any, **kwargs: Any
+        self: web.RequestHandler, *args: object, **kwargs: object
     ) -> None:
         fn(self, *args, **kwargs)
         self.set_header(name, value)
@@ -126,7 +133,7 @@ def shell(
 
 
 class LiveScriptInjector(web.OutputTransform):
-    script: bytes
+    script: ClassVar[bytes] = b""
 
     def __init__(self, request: httputil.HTTPServerRequest) -> None:
         super().__init__(request)
@@ -150,25 +157,26 @@ class LiveScriptInjector(web.OutputTransform):
 
 class LiveScriptContainer(WSGIContainer):
     def __init__(self, wsgi_app: WSGIApplication, script: bytes = b"") -> None:
-        self.wsgi_app = wsgi_app
-        self.script = script
+        super().__init__(wsgi_app)
+        self.wsgi_app: WSGIApplication = wsgi_app
+        self.script: bytes = script
 
     @override
     def __call__(self, request: httputil.HTTPServerRequest) -> None:
-        data: dict[str, Any] = {}
+        # (status, headers) passed to start_response by the WSGI app
+        started: list[tuple[str, list[tuple[str, str]]]] = []
         response: list[bytes] = []
 
         def start_response(
-            status: str,
+            status_line: str,
             response_headers: list[tuple[str, str]],
-            exc_info: (
+            _exc_info: (
                 tuple[type[BaseException], BaseException, TracebackType]
                 | tuple[None, None, None]
                 | None
             ) = None,
         ) -> Callable[[bytes], object]:
-            data["status"] = status
-            data["headers"] = response_headers
+            started.append((status_line, response_headers))
             return response.append
 
         app_response = self.wsgi_app(
@@ -178,15 +186,18 @@ class LiveScriptContainer(WSGIContainer):
             response.extend(app_response)
             body = b"".join(response)
         finally:
-            if hasattr(app_response, "close"):
-                app_response.close()
-        if not data:
+            close = cast(
+                "Callable[[], object] | None", getattr(app_response, "close", None)
+            )
+            if close is not None:
+                close()
+        if not started:
             raise Exception("WSGI app did not call start_response")
 
-        status, reason = data["status"].split(" ", 1)
-        status_code = int(status)
-        headers: list[tuple[str, str]] = data["headers"]
-        header_set = {k.lower() for (k, v) in headers}
+        status, headers = started[-1]
+        code, reason = status.split(" ", 1)
+        status_code = int(code)
+        header_set = {k.lower() for (k, _) in headers}
         body = escape.utf8(body)
 
         if HEAD_END_RE.search(body):
@@ -230,20 +241,19 @@ class Server:
                     CPU usage.
     """
 
-    default_filename: str
-
     def __init__(
         self,
         app: WSGIApplication | None = None,
         watcher: Watcher | None = None,
     ) -> None:
         self.root: str | None = None
+        self.default_filename: str = "index.html"
 
-        self.app = app
+        self.app: WSGIApplication | None = app
         if not watcher:
             watcher_cls = get_watcher_class()
             watcher = watcher_cls()
-        self.watcher = watcher
+        self.watcher: Watcher = watcher
         self.SFH: type[StaticFileHandler] = StaticFileHandler
 
     def setHeader(self, name: str, value: str) -> None:
@@ -263,7 +273,7 @@ class Server:
         StaticFileHandler.set_default_headers = set_header(  # type: ignore[method-assign]
             StaticFileHandler.set_default_headers, name, value
         )
-        self.SFH = StaticFileHandler
+        self.SFH = StaticFileHandler  # pyright: ignore[reportConstantRedefinition]
 
     def watch(
         self,
@@ -297,7 +307,7 @@ class Server:
         if isinstance(func, str):
             cmd = func
             func = shell(func)
-            func.name = f"shell: {cmd}"  # type: ignore[attr-defined]
+            func.name = f"shell: {cmd}"  # type: ignore[attr-defined]  # pyright: ignore[reportFunctionMemberAccess]
 
         self.watcher.watch(filepath, func, delay, ignore=ignore)
 
@@ -314,7 +324,7 @@ class Server:
         if debug is None and self.app:
             debug = True
 
-        live_handlers: list[Any] = [
+        live_handlers: _RuleList = [
             (r"/livereload", LiveReloadHandler),
             (r"/forcereload", ForceReloadHandler),
             (r"/livereload.js", LiveReloadJSHandler),
@@ -346,10 +356,10 @@ class Server:
         web_handlers = self.get_web_handlers(live_script)
 
         class ConfiguredTransform(LiveScriptInjector):
-            script = live_script
+            script: ClassVar[bytes] = live_script
 
         if not liveport:
-            handlers = live_handlers + web_handlers
+            handlers: _RuleList = [*live_handlers, *web_handlers]
             app = web.Application(
                 handlers=handlers, debug=debug, transforms=[ConfiguredTransform]
             )
@@ -362,7 +372,7 @@ class Server:
             live = web.Application(handlers=live_handlers, debug=False)
             live.listen(liveport, address=host)
 
-    def get_web_handlers(self, script: bytes) -> list[Any]:
+    def get_web_handlers(self, script: bytes) -> _RuleList:
         if self.app:
             fallback = LiveScriptContainer(self.app, script)
             return [(r".*", web.FallbackHandler, {"fallback": fallback})]
@@ -428,7 +438,7 @@ class Server:
             threading.Thread(target=opener).start()
 
         try:
-            self.watcher._changes.append(("__livereload__", restart_delay))
+            self.watcher._changes.append(("__livereload__", restart_delay))  # pyright: ignore[reportPrivateUsage]
             LiveReloadHandler.start_tasks()
             # When autoreload is triggered, initiate a shutdown of the IOLoop
             add_reload_hook(lambda: IOLoop.instance().stop())

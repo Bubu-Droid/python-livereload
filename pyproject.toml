@@ -43,6 +43,8 @@ scripts.livereload = "livereload.cli:main"
 
 [dependency-groups]
 dev = [
+  "basedpyright>=1.39.10",
+  "django-stubs>=5.1.3",
   "mypy>=1.19.1",
   "pytest>=8.4.2",
   "ruff>=0.17.1",
@@ -61,12 +63,21 @@ lint.select = [ "B", "E", "F", "UP", "W" ]
 
 [tool.mypy]
 files = [ "src" ]
+mypy_path = "typings"
 strict = true
-overrides = [
-  { module = [ "django.*", "pyinotify" ], ignore_missing_imports = true },
-  # BaseCommand is untyped without django-stubs.
-  { module = "livereload.management.*", disallow_subclassing_any = false }
-]
+
+[tool.basedpyright]
+include = [ "src", "tests" ]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.9"
+# Discarding return values (``app.listen()``, ``os.makedirs()``, ...) is
+# intentional throughout; ``_ =`` on every call would be noise.
+reportUnusedCallResult = false
+# pyinotify is an optional dependency, typed by the stub in typings/.
+reportMissingModuleSource = false
+# Tests exercise private helpers on purpose.
+executionEnvironments = [ { root = "tests", reportPrivateUsage = false } ]
 
 [tool.pytest]
 ini_options.testpaths = [ "tests" ]

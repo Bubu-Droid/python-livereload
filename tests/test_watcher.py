@@ -4,6 +4,8 @@ import os
 import time
 import shutil
 import unittest
+
+from livereload._typing import override
 from livereload.watcher import get_watcher_class
 
 Watcher = get_watcher_class()
@@ -12,12 +14,14 @@ tmpdir = os.path.join(os.path.dirname(__file__), "tmp")
 
 
 class TestWatcher(unittest.TestCase):
-    def setUp(self):
+    @override
+    def setUp(self) -> None:
         if os.path.isdir(tmpdir):
             shutil.rmtree(tmpdir)
         os.mkdir(tmpdir)
 
-    def tearDown(self):
+    @override
+    def tearDown(self) -> None:
         shutil.rmtree(tmpdir)
 
     def test_watch_dir(self):
@@ -48,7 +52,7 @@ class TestWatcher(unittest.TestCase):
 
     def test_watch_file(self):
         watcher = Watcher()
-        watcher.count = 0
+        count = 0
 
         # sleep 1 second so that mtime will be different
         # TODO: This doesn't seem necessary; test passes without it
@@ -58,8 +62,9 @@ class TestWatcher(unittest.TestCase):
         with open(filepath, "w") as f:
             f.write("")
 
-        def add_count():
-            watcher.count += 1
+        def add_count() -> None:
+            nonlocal count
+            count += 1
 
         watcher.watch(filepath, add_count)
         assert watcher.is_changed(filepath)
@@ -75,12 +80,12 @@ class TestWatcher(unittest.TestCase):
         abs_filepath = os.path.abspath(filepath)
         assert watcher.examine() == (abs_filepath, None)
         assert watcher.examine() == (None, None)
-        assert watcher.count == 1
+        assert count == 1
 
         os.remove(filepath)
         assert watcher.examine() == (abs_filepath, None)
         assert watcher.examine() == (None, None)
-        assert watcher.count == 2
+        assert count == 2
 
     def test_watch_glob(self):
         watcher = Watcher()
