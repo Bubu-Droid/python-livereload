@@ -44,11 +44,9 @@ scripts.livereload = "livereload.cli:main"
 [dependency-groups]
 dev = [
   "basedpyright>=1.39.10",
-  "django-stubs>=5.1.3",
-  "mypy>=1.19.1",
   "pytest>=8.4.2",
   "ruff>=0.17.1",
-  "typing-extensions>=4.16",
+  "typing-extensions>=4.16.0",
 ]
 
 [tool.hatch]
@@ -60,11 +58,6 @@ build.targets.sdist.include = [ "/src", "/tests", "/docs", "/CHANGES.rst" ]
 target-version = "py39"
 src = [ "src" ]
 lint.select = [ "B", "E", "F", "UP", "W" ]
-
-[tool.mypy]
-files = [ "src" ]
-mypy_path = "typings"
-strict = true
 
 [tool.basedpyright]
 include = [ "src", "tests" ]

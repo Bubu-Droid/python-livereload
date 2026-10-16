@@ -12,7 +12,7 @@ jobs:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v6
     - run: uv run ruff check .
-    - run: uv run mypy
+    - run: uv run basedpyright
 
   test:
     runs-on: ubuntu-latest

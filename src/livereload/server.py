@@ -270,7 +270,7 @@ class Server:
         :param name: The name of the header field to be defined.
         :param value: The value of the header field to be defined.
         """
-        StaticFileHandler.set_default_headers = set_header(  # type: ignore[method-assign]
+        StaticFileHandler.set_default_headers = set_header(
             StaticFileHandler.set_default_headers, name, value
         )
         self.SFH = StaticFileHandler  # pyright: ignore[reportConstantRedefinition]
@@ -307,7 +307,7 @@ class Server:
         if isinstance(func, str):
             cmd = func
             func = shell(func)
-            func.name = f"shell: {cmd}"  # type: ignore[attr-defined]  # pyright: ignore[reportFunctionMemberAccess]
+            func.name = f"shell: {cmd}"  # pyright: ignore[reportFunctionMemberAccess]
 
         self.watcher.watch(filepath, func, delay, ignore=ignore)
 

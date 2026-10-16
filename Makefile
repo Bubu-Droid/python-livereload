@@ -30,7 +30,7 @@ lint:
 	uv run ruff check .
 
 typecheck:
-	uv run mypy
+	uv run basedpyright
 
 check: lint typecheck test
 

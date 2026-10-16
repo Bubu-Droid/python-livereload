@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 try:
     import pyinotify
 except ImportError:
-    pyinotify = None  # type: ignore[assignment]
+    pyinotify = None
 
 
 class _Task(TypedDict):

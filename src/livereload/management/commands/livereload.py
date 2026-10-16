@@ -1,25 +1,25 @@
+# Django is an optional dependency and is untyped without django-stubs.
+# pyright: reportMissingImports=false, reportUntypedBaseClass=false
+# pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false
+
 from __future__ import annotations
 
 import os
 import re
-from typing import TYPE_CHECKING, cast
+from argparse import ArgumentParser
+from typing import cast
 
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management.commands.runserver import naiveip_re
 from django.core.servers.basehttp import get_internal_wsgi_application
 
 from livereload import Server
-from livereload._typing import override
-
-if TYPE_CHECKING:
-    from django.core.management.base import CommandParser
 
 
 class Command(BaseCommand):
     help: str = "Runs the development server with livereload enabled."
 
-    @override
-    def add_arguments(self, parser: CommandParser) -> None:
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument(
             "addrport",
             nargs="?",
@@ -37,7 +37,6 @@ class Command(BaseCommand):
             help=("port the livereload server should listen on (default: 35729)"),
         )
 
-    @override
     def handle(self, *args: object, **options: object) -> None:
         del args  # the command takes no positional labels
         addrport = cast("str", options["addrport"])
