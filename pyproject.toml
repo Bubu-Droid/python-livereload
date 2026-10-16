@@ -1,13 +1,18 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = [ "hatchling>=1.26" ]
 
 [project]
 name = "livereload"
 description = "Python LiveReload is an awesome tool for web developers"
 readme = "README.md"
+# TODO: add more keywords in here
+keywords = [
+  "livereload",
+]
 license = "BSD-3-Clause"
-license-files = [ "LICENSE" ]
+license-files = [ "LICEN[CS]E*" ]
+maintainers = [ { name = "Bubu-Droid", email = "bubu@bubudroid.me" } ]
 authors = [ { name = "Hsiaoming Yang", email = "me@lepture.com" } ]
 requires-python = ">=3.9"
 classifiers = [
@@ -34,43 +39,31 @@ classifiers = [
   "Topic :: Software Development :: Debuggers",
 ]
 dynamic = [ "version" ]
-dependencies = [ "tornado" ]
-urls.Changelog = "https://github.com/lepture/python-livereload/blob/master/CHANGES.rst"
+dependencies = [
+  "tornado>=6.5.10",
+]
+urls.Changelog = "https://github.com/lepture/python-livereload/blob/master/CHANGELOG.md"
 urls.Documentation = "https://livereload.readthedocs.io"
-urls.Homepage = "https://github.com/lepture/python-livereload"
-urls.Source = "https://github.com/lepture/python-livereload"
+urls.Issues = "https://github.com/lepture/python-livereload/issues"
+urls.Repository = "https://github.com/lepture/python-livereload"
 scripts.livereload = "livereload.cli:main"
 
 [dependency-groups]
 dev = [
-  "basedpyright>=1.39.10",
   "pytest>=8.4.2",
-  "ruff>=0.17.1",
-  "typing-extensions>=4.16.0",
 ]
 
 [tool.hatch]
 version.path = "src/livereload/__init__.py"
 build.targets.wheel.packages = [ "src/livereload" ]
-build.targets.sdist.include = [ "/src", "/tests", "/docs", "/CHANGES.rst" ]
+build.targets.sdist.include = [ "/src", "/tests", "/docs", "/CHANGELOG.md" ]
 
 [tool.ruff]
-target-version = "py39"
-src = [ "src" ]
-lint.select = [ "B", "E", "F", "UP", "W" ]
+line-length = 80
+lint.extend-select = [ "ANN" ]
+lint.unfixable = [ "F401" ]
 
 [tool.basedpyright]
-include = [ "src", "tests" ]
-venvPath = "."
-venv = ".venv"
-pythonVersion = "3.9"
-# Discarding return values (``app.listen()``, ``os.makedirs()``, ...) is
-# intentional throughout; ``_ =`` on every call would be noise.
-reportUnusedCallResult = false
-# pyinotify is an optional dependency, typed by the stub in typings/.
-reportMissingModuleSource = false
-# Tests exercise private helpers on purpose.
-executionEnvironments = [ { root = "tests", reportPrivateUsage = false } ]
-
-[tool.pytest]
-ini_options.testpaths = [ "tests" ]
+executionEnvironments = [
+  { root = "tests", reportPrivateUsage = false },
+]
