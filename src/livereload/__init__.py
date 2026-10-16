@@ -8,10 +8,8 @@ A python version of livereload.
 :license: BSD, see LICENSE for more details.
 """
 
+from livereload.server import Server, shell
+
 __version__ = "2.7.1"
-__author__ = "Hsiaoming Yang <me@lepture.com>"
-__homepage__ = "https://github.com/lepture/python-livereload"
 
-from .server import Server, shell
-
-__all__ = ("Server", "shell")
+__all__ = ["Server", "shell"]
