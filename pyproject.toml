@@ -52,6 +52,7 @@ scripts.livereload = "livereload.cli:main"
 
 [dependency-groups]
 dev = [
+  "django-stubs>=6.0.9",
   "prek>=0.5.5",
   "pytest>=8.4.2",
 ]
