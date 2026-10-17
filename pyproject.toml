@@ -89,6 +89,7 @@ ini_options.filterwarnings = [
 [tool.basedpyright]
 # Check against the oldest supported Python
 pythonVersion = "3.10"
+reportUnusedCallResult = false
 executionEnvironments = [
   { root = "tests", reportPrivateUsage = false },
 ]
