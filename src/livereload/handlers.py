@@ -16,16 +16,14 @@ import logging
 import os
 import stat
 import time
-from typing import TYPE_CHECKING, ClassVar, cast
+from typing import ClassVar, cast
 
 from tornado import escape, ioloop, web
 from tornado.log import gen_log
 from tornado.websocket import WebSocketHandler
 
-from ._typing import override
-
-if TYPE_CHECKING:
-    from .watcher import Watcher
+from livereload._typing import override
+from livereload.watcher import Watcher
 
 logger = logging.getLogger("livereload")
 
@@ -54,9 +52,9 @@ class LiveReloadHandler(WebSocketHandler):
             message = escape.json_encode(message)
 
         try:
-            self.write_message(message)
+            _ = self.write_message(message)
         except Exception:
-            logger.error("Error sending message", exc_info=True)
+            logger.exception("Error sending message")
 
     @classmethod
     def start_tasks(cls) -> None:
@@ -97,7 +95,7 @@ class LiveReloadHandler(WebSocketHandler):
         if delay:
             loop = ioloop.IOLoop.current()
             # tornado types the callback as a bare ``Callable``
-            loop.call_later(delay, cls.reload_waiters)  # pyright: ignore[reportUnknownMemberType]
+            _ = loop.call_later(delay, cls.reload_waiters)  # pyright: ignore[reportUnknownMemberType]
         else:
             cls.reload_waiters()
 
@@ -123,9 +121,9 @@ class LiveReloadHandler(WebSocketHandler):
         cls._last_reload_time = time.time()
         for waiter in cls.waiters.copy():
             try:
-                waiter.write_message(msg)
+                _ = waiter.write_message(msg)
             except Exception:
-                logger.error("Error sending message", exc_info=True)
+                logger.exception("Error sending message")
                 cls.waiters.remove(waiter)
 
     @override
@@ -136,7 +134,7 @@ class LiveReloadHandler(WebSocketHandler):
         2. server reply 'hello'
         3. client send 'info'
         """
-        data = cast("dict[str, object]", escape.json_decode(message))
+        data = cast(dict[str, object], escape.json_decode(message))
         if data.get("command") == "hello":
             handshake: dict[str, object] = {
                 "command": "hello",
@@ -182,7 +180,9 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
         data = cls.get_content(abspath)
         hasher = hashlib.md5()
 
-        mtime_data = format(cls.get_content_modified_time(abspath), "%Y-%m-%d %H:%M:%S")
+        mtime_data = format(
+            cls.get_content_modified_time(abspath), "%Y-%m-%d %H:%M:%S"
+        )
 
         hasher.update(mtime_data.encode())
 
@@ -204,7 +204,7 @@ class MtimeStaticFileHandler(web.StaticFileHandler):
                 mtm = cls.get_content_modified_time(abs_path)
 
                 return mtm, hsh
-            except Exception:
+            except OSError:
                 gen_log.error("Could not open static file %r", abs_path)
                 return None, None
 

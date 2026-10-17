@@ -17,15 +17,17 @@ import time
 from inspect import signature
 from typing import TYPE_CHECKING, TypedDict, cast
 
-from ._typing import override
+from livereload._typing import override
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pyinotify import Event, TornadoAsyncNotifier, WatchManager
 
-    from ._typing import Delay, IgnoreFunc, TaskFunc
+    from livereload._typing import Delay, IgnoreFunc, TaskFunc
 
+# NOTE: should we actually still continue using pyinotify?
+# it's deprecated. ask lepture about this.
 try:
     import pyinotify
 except ImportError:
@@ -126,15 +128,15 @@ class Watcher:
                 if delay and isinstance(delay, float):
                     delays.add(delay)
                 if func:
-                    name = cast("str | None", getattr(func, "name", None))
+                    name = cast(str | None, getattr(func, "name", None))
                     if not name:
-                        name = cast("str", getattr(func, "__name__", "anonymous"))
+                        name = cast(str, getattr(func, "__name__", "anonymous"))
                     logger.info(f"Running task: {name} (delay: {delay})")
                     takes_args = len(signature(func).parameters) > 0
                     if takes_args and isinstance(changed, list):
-                        func(changed)
+                        _ = func(changed)
                     else:
-                        func()
+                        _ = func()
 
         if delays:
             return self.filepath, max(delays)
@@ -174,13 +176,15 @@ class Watcher:
             return False
 
         for path in removed_paths:
-            self._task_mtimes.pop(path)
+            _ = self._task_mtimes.pop(path)
             # self.filepath seems purely informational, so setting one
             # of several removed files seems sufficient
             self.filepath = path
         return True
 
-    def is_file_changed(self, path: str, ignore: IgnoreFunc | None = None) -> bool:
+    def is_file_changed(
+        self, path: str, ignore: IgnoreFunc | None = None
+    ) -> bool:
         """Check if filepath has been added or modified since last check.
 
         Updates filepath modification times in self._new_mtimes.
@@ -210,7 +214,9 @@ class Watcher:
         self._new_mtimes[path] = mtime
         return False
 
-    def is_folder_changed(self, path: str, ignore: IgnoreFunc | None = None) -> bool:
+    def is_folder_changed(
+        self, path: str, ignore: IgnoreFunc | None = None
+    ) -> bool:
         """Check if directory path has any changed filepaths."""
         for root, dirs, files in os.walk(path, followlinks=True):
             for d in self.ignored_dirs:
@@ -250,7 +256,7 @@ class INotifyWatcher(Watcher):
     ) -> None:
         assert pyinotify is not None
         flag = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY
-        self.wm.add_watch(path, flag, rec=True, do_glob=True, auto_add=True)
+        _ = self.wm.add_watch(path, flag, rec=True, do_glob=True, auto_add=True)
         Watcher.watch(self, path, func, delay, ignore)
 
     def inotify_event(self, event: Event) -> None:
@@ -267,7 +273,9 @@ class INotifyWatcher(Watcher):
             from tornado import ioloop
 
             self.notifier = pyinotify.TornadoAsyncNotifier(
-                self.wm, ioloop.IOLoop.instance(), default_proc_fun=self.inotify_event
+                self.wm,
+                ioloop.IOLoop.instance(),
+                default_proc_fun=self.inotify_event,
             )
             callback()
         return True
