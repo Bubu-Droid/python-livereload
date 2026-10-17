@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build docs test coverage lint typecheck check build install
+.PHONY: clean-pyc clean-build docs test coverage check build install
 
 clean: clean-build clean-pyc
 
