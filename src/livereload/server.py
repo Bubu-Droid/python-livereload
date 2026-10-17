@@ -10,50 +10,52 @@ WSGI app server for livereload.
 
 from __future__ import annotations
 
-import os
-import time
-import shlex
+import errno
 import logging
-import threading
-import webbrowser
+import os
 import re
-from subprocess import Popen, PIPE
+import shlex
+
+# import sys
+import threading
+import time
+import webbrowser
+from collections.abc import Callable
+from subprocess import PIPE, Popen
 from typing import TYPE_CHECKING, ClassVar, cast
 
-from tornado.wsgi import WSGIContainer
-from tornado.ioloop import IOLoop
+from tornado import escape, httputil, web
 from tornado.autoreload import add_reload_hook
-from tornado import web
-from tornado import escape
-from tornado import httputil
+from tornado.ioloop import IOLoop
 from tornado.log import LogFormatter
-from .handlers import LiveReloadHandler, LiveReloadJSHandler
-from .handlers import ForceReloadHandler, StaticFileHandler
-from .watcher import get_watcher_class
-from ._typing import override
+from tornado.wsgi import WSGIContainer
 
-import sys
-
-import errno
+from livereload._typing import override
+from livereload.handlers import (
+    ForceReloadHandler,
+    LiveReloadHandler,
+    LiveReloadJSHandler,
+    StaticFileHandler,
+)
+from livereload.watcher import get_watcher_class
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from types import TracebackType
 
     from _typeshed.wsgi import WSGIApplication
     from tornado.routing import _RuleList  # pyright: ignore[reportPrivateUsage]
 
-    from ._typing import Delay, IgnoreFunc, TaskFunc
-    from .watcher import Watcher
+    from livereload._typing import Delay, IgnoreFunc, TaskFunc
+    from livereload.watcher import Watcher
 
+# FIX:
 # Event loop policies are deprecated in 3.14 and removed in 3.16; tornado
 # supports the default Windows proactor loop on its own since 6.1.
-if sys.platform == "win32" and sys.version_info < (3, 14):
-    import asyncio
-
-    asyncio.set_event_loop_policy(  # pyright: ignore[reportDeprecated]
-        asyncio.WindowsSelectorEventLoopPolicy()
-    )
+# if sys.platform == "win32" and sys.version_info < (3, 14):
+#     import asyncio
+#     asyncio.set_event_loop_policy(
+#         asyncio.WindowsSelectorEventLoopPolicy()
+#     )
 
 logger = logging.getLogger("livereload")
 
@@ -62,10 +64,14 @@ HEAD_END_RE = re.compile(rb"</head>", re.IGNORECASE)
 
 def inject_script_at_head(content: bytes, script: bytes) -> bytes:
     """Inject script before closing </head> tag, case-insensitive."""
-    return HEAD_END_RE.sub(lambda match: script + match.group(0), content, count=1)
+    return HEAD_END_RE.sub(
+        lambda match: script + match.group(0), content, count=1
+    )
 
 
-def set_header(fn: Callable[..., None], name: str, value: str) -> Callable[..., None]:
+def set_header(
+    fn: Callable[..., None], name: str, value: str
+) -> Callable[..., None]:
     """Helper Function to Add HTTP headers to the server"""
 
     def set_default_headers(
@@ -112,7 +118,9 @@ def shell(
 
     def run_shell() -> OSError | str | None:
         try:
-            p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell)
+            p = Popen(
+                cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=cwd, shell=shell
+            )
         except OSError as e:
             logger.error(e)
             if e.errno == errno.ENOENT:  # file (command) not found
@@ -126,7 +134,7 @@ def shell(
             logger.error(stderr)
             return stderr
         with open(output, mode) as f:
-            f.write(stdout)
+            _ = f.write(stdout)
         return None
 
     return run_shell
@@ -187,12 +195,13 @@ class LiveScriptContainer(WSGIContainer):
             body = b"".join(response)
         finally:
             close = cast(
-                "Callable[[], object] | None", getattr(app_response, "close", None)
+                Callable[[], object] | None,
+                getattr(app_response, "close", None),
             )
             if close is not None:
-                close()
+                _ = close()
         if not started:
-            raise Exception("WSGI app did not call start_response")
+            raise RuntimeError("WSGI app did not call start_response")
 
         status, headers = started[-1]
         code, reason = status.split(" ", 1)
@@ -221,7 +230,7 @@ class LiveScriptContainer(WSGIContainer):
                 value = str(len(body))
             header_obj.add(key, value)
         assert request.connection is not None
-        request.connection.write_headers(start_line, header_obj, chunk=body)
+        _ = request.connection.write_headers(start_line, header_obj, chunk=body)
         request.connection.finish()
         self._log(status_code, request)
 
@@ -254,7 +263,7 @@ class Server:
             watcher_cls = get_watcher_class()
             watcher = watcher_cls()
         self.watcher: Watcher = watcher
-        self.SFH: type[StaticFileHandler] = StaticFileHandler
+        self.static_file_handler: type[StaticFileHandler] = StaticFileHandler
 
     def setHeader(self, name: str, value: str) -> None:
         """Add or override HTTP headers at the at the beginning of the
@@ -273,7 +282,7 @@ class Server:
         StaticFileHandler.set_default_headers = set_header(
             StaticFileHandler.set_default_headers, name, value
         )
-        self.SFH = StaticFileHandler  # pyright: ignore[reportConstantRedefinition]
+        self.static_file_handler = StaticFileHandler
 
     def watch(
         self,
@@ -307,7 +316,7 @@ class Server:
         if isinstance(func, str):
             cmd = func
             func = shell(func)
-            func.name = f"shell: {cmd}"  # pyright: ignore[reportFunctionMemberAccess]
+            func.__name__ = f"shell: {cmd}"
 
         self.watcher.watch(filepath, func, delay, ignore=ignore)
 
@@ -363,14 +372,16 @@ class Server:
             app = web.Application(
                 handlers=handlers, debug=debug, transforms=[ConfiguredTransform]
             )
-            app.listen(port, address=host)
+            _ = app.listen(port, address=host)
         else:
             app = web.Application(
-                handlers=web_handlers, debug=debug, transforms=[ConfiguredTransform]
+                handlers=web_handlers,
+                debug=debug,
+                transforms=[ConfiguredTransform],
             )
-            app.listen(port, address=host)
+            _ = app.listen(port, address=host)
             live = web.Application(handlers=live_handlers, debug=False)
-            live.listen(liveport, address=host)
+            _ = live.listen(liveport, address=host)
 
     def get_web_handlers(self, script: bytes) -> _RuleList:
         if self.app:
@@ -379,7 +390,7 @@ class Server:
         return [
             (
                 r"/(.*)",
-                self.SFH,
+                self.static_file_handler,
                 {
                     "path": self.root or ".",
                     "default_filename": self.default_filename,
@@ -423,7 +434,9 @@ class Server:
 
         self.default_filename = default_filename
 
-        self.application(port, host, liveport=liveport, debug=debug, live_css=live_css)
+        self.application(
+            port, host, liveport=liveport, debug=debug, live_css=live_css
+        )
 
         # Async open web browser after 5 sec timeout
         if open_url:
@@ -433,7 +446,7 @@ class Server:
             def opener() -> None:
                 assert open_url_delay is not None
                 time.sleep(open_url_delay)
-                webbrowser.open(f"http://{host}:{port}")
+                _ = webbrowser.open(f"http://{host}:{port}")
 
             threading.Thread(target=opener).start()
 
