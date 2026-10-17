@@ -34,13 +34,15 @@ class Command(BaseCommand):
             "--liveport",
             type=int,
             default=35729,
-            help=("port the livereload server should listen on (default: 35729)"),
+            help=(
+                "port the livereload server should listen on (default: 35729)"
+            ),
         )
 
     def handle(self, *args: object, **options: object) -> None:
         del args  # the command takes no positional labels
-        addrport = cast("str", options["addrport"])
-        liveport = cast("int", options["liveport"])
+        addrport = cast(str, options["addrport"])
+        liveport = cast(int, options["liveport"])
         m = re.match(naiveip_re, addrport)
         if m is None:
             raise CommandError(
@@ -52,7 +54,9 @@ class Command(BaseCommand):
 
         if addr:
             if _ipv6:
-                raise CommandError("IPv6 addresses are currently not supported.")
+                raise CommandError(
+                    "IPv6 addresses are currently not supported."
+                )
 
         application = get_internal_wsgi_application()
         server = Server(application)
