@@ -1,6 +1,4 @@
 # Django is an optional dependency and is untyped without django-stubs.
-# pyright: reportMissingImports=false, reportUntypedBaseClass=false
-# pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false
 
 import os
 import re
@@ -12,13 +10,15 @@ from django.core.management.commands.runserver import naiveip_re
 from django.core.servers.basehttp import get_internal_wsgi_application
 
 from livereload import Server
+from livereload._typing import override
 
 
 class Command(BaseCommand):
     help: str = "Runs the development server with livereload enabled."
 
+    @override
     def add_arguments(self, parser: ArgumentParser) -> None:
-        parser.add_argument(
+        _ = parser.add_argument(
             "addrport",
             nargs="?",
             default="127.0.0.1:8000",
@@ -27,7 +27,7 @@ class Command(BaseCommand):
                 "listen on (default: 127.0.0.1:8000)"
             ),
         )
-        parser.add_argument(
+        _ = parser.add_argument(
             "-l",
             "--liveport",
             type=int,
@@ -37,6 +37,7 @@ class Command(BaseCommand):
             ),
         )
 
+    @override
     def handle(self, *args: object, **options: object) -> None:
         del args  # the command takes no positional labels
         addrport = cast(str, options["addrport"])
@@ -50,11 +51,8 @@ class Command(BaseCommand):
         if not port.isdigit():
             raise CommandError(f"{port!r} is not a valid port number.")
 
-        if addr:
-            if _ipv6:
-                raise CommandError(
-                    "IPv6 addresses are currently not supported."
-                )
+        if addr and _ipv6:
+            raise CommandError("IPv6 addresses are currently not supported.")
 
         application = get_internal_wsgi_application()
         server = Server(application)
