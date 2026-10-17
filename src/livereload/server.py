@@ -15,8 +15,6 @@ import logging
 import os
 import re
 import shlex
-
-# import sys
 import threading
 import time
 import webbrowser
@@ -47,14 +45,6 @@ if TYPE_CHECKING:
 
     from livereload.watcher import Watcher
 
-# FIX:
-# Event loop policies are deprecated in 3.14 and removed in 3.16; tornado
-# supports the default Windows proactor loop on its own since 6.1.
-# if sys.platform == "win32" and sys.version_info < (3, 14):
-#     import asyncio
-#     asyncio.set_event_loop_policy(
-#         asyncio.WindowsSelectorEventLoopPolicy()
-#     )
 
 logger = logging.getLogger("livereload")
 
