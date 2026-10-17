@@ -7,11 +7,7 @@ Typing helpers shared across the package.
 
 import sys
 from collections.abc import Callable
-
-# HACK: why are we using quotes while using cast(type, ...)
 from typing import Literal, TypeAlias, TypeVar
-
-# ask about the unused mypy and typing_extensions stuff
 
 #: Seconds to wait before reloading, or ``'forever'`` to never reload.
 Delay: TypeAlias = float | Literal["forever"] | None
