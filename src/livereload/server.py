@@ -30,7 +30,7 @@ from tornado.ioloop import IOLoop
 from tornado.log import LogFormatter
 from tornado.wsgi import WSGIContainer
 
-from livereload._typing import override
+from livereload._typing import Delay, IgnoreFunc, TaskFunc, override
 from livereload.handlers import (
     ForceReloadHandler,
     LiveReloadHandler,
@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from _typeshed.wsgi import WSGIApplication
     from tornado.routing import _RuleList  # pyright: ignore[reportPrivateUsage]
 
-    from livereload._typing import Delay, IgnoreFunc, TaskFunc
     from livereload.watcher import Watcher
 
 # FIX:

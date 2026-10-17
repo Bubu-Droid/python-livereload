@@ -17,14 +17,12 @@ import time
 from inspect import signature
 from typing import TYPE_CHECKING, TypedDict, cast
 
-from livereload._typing import override
+from livereload._typing import Delay, IgnoreFunc, TaskFunc, override
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pyinotify import Event, TornadoAsyncNotifier, WatchManager
-
-    from livereload._typing import Delay, IgnoreFunc, TaskFunc
 
 # NOTE: should we actually still continue using pyinotify?
 # it's deprecated. ask lepture about this.

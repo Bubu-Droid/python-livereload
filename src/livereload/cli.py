@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import argparse
 from typing import cast
 
 import tornado.log
 
-from livereload.__init__ import __version__ as VERSION
+from livereload import __version__ as VERSION
 from livereload.server import Server
 
 parser = argparse.ArgumentParser(

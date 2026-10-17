@@ -5,33 +5,31 @@ livereload._typing
 Typing helpers shared across the package.
 """
 
-from __future__ import annotations
+import sys
+from collections.abc import Callable
 
-from typing import TYPE_CHECKING
+# HACK: why are we using quotes while using cast(type, ...)
+from typing import Literal, TypeAlias, TypeVar
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import Literal
+# ask about the unused mypy and typing_extensions stuff
 
-    from typing_extensions import TypeAlias, override
+#: Seconds to wait before reloading, or ``'forever'`` to never reload.
+Delay: TypeAlias = float | Literal["forever"] | None
 
-    # These aliases are only visible to type checkers: ``X | Y`` cannot be
-    # evaluated at runtime before Python 3.10. Import them inside an
-    # ``if TYPE_CHECKING:`` block.
+#: Called with the path being checked; return True to ignore it.
+IgnoreFunc: TypeAlias = Callable[[str], bool]
 
-    #: Seconds to wait before reloading, or ``'forever'`` to never reload.
-    Delay: TypeAlias = "float | Literal['forever'] | None"
+#: A watcher task: called with no arguments, or with the changed paths.
+TaskFunc: TypeAlias = Callable[..., object]
 
-    #: Called with the path being checked; return True to ignore it.
-    IgnoreFunc: TypeAlias = Callable[[str], bool]
-
-    #: A watcher task: called with no arguments, or with the changed paths.
-    TaskFunc: TypeAlias = Callable[..., object]
+if sys.version_info >= (3, 12):
+    from typing import override
 else:
-    # ``typing.override`` only exists on Python 3.12+. It has no runtime
-    # effect beyond setting ``__override__``, so a no-op keeps it usable
-    # on every supported version without a runtime dependency.
-    def override(func):
+    # Only reachable on Python 3.10 and 3.11.
+    _F = TypeVar("_F", bound=Callable[..., object])  # pyright: ignore[reportUnreachable]
+
+    def override(func: _F, /) -> _F:
+        """No-op stand-in for :func:`typing.override` (Python 3.12+)."""
         return func
 
 

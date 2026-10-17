@@ -2,8 +2,6 @@
 # pyright: reportMissingImports=false, reportUntypedBaseClass=false
 # pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false
 
-from __future__ import annotations
-
 import os
 import re
 from argparse import ArgumentParser
