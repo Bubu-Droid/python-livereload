@@ -12,45 +12,45 @@ parser = argparse.ArgumentParser(
     allow_abbrev=False,
 )
 
-_ = parser.add_argument(
+parser.add_argument(
     "-V",
     "--version",
     action="version",
     version=f"%(prog)s {VERSION}",
 )
-_ = parser.add_argument(
+parser.add_argument(
     "-d",
     "--debug",
     help="enable Tornado pretty logging",
     action="store_true",
 )
-_ = parser.add_argument(
+parser.add_argument(
     "--host",
     help="hostname to run `livereload` server on",
     type=str,
     default="127.0.0.1",
 )
-_ = parser.add_argument(
+parser.add_argument(
     "-p",
     "--port",
     help="port to run `livereload` server on",
     type=int,
     default=35729,
 )
-_ = parser.add_argument(
+parser.add_argument(
     "directory",
     help="directory to serve files from",
     type=str,
     default=".",
     nargs="?",
 )
-_ = parser.add_argument(
+parser.add_argument(
     "-t",
     "--target",
     help="file or directory to watch for changes",
     type=str,
 )
-_ = parser.add_argument(
+parser.add_argument(
     "-w",
     "--wait",
     help="time delay in seconds before reloading",
@@ -58,7 +58,7 @@ _ = parser.add_argument(
     default=0.0,
     metavar="DELAY",
 )
-_ = parser.add_argument(
+parser.add_argument(
     "-o",
     "--open-url-delay",
     help="if set, triggers browser opening <D> seconds after starting",
