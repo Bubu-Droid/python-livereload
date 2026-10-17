@@ -1,8 +1,6 @@
-#!/usr/bin/python
-
 import os
-import time
 import shutil
+import time
 import unittest
 
 from livereload._typing import override
@@ -24,7 +22,7 @@ class TestWatcher(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(tmpdir)
 
-    def test_watch_dir(self):
+    def test_watch_dir(self) -> None:
         os.mkdir(os.path.join(tmpdir, ".git"))
         os.mkdir(os.path.join(tmpdir, ".hg"))
         os.mkdir(os.path.join(tmpdir, ".svn"))
@@ -41,7 +39,7 @@ class TestWatcher(unittest.TestCase):
         filepath = os.path.join(tmpdir, "foo")
 
         with open(filepath, "w") as f:
-            f.write("")
+            _ = f.write("")
 
         assert watcher.is_changed(tmpdir)
         assert watcher.is_changed(tmpdir) is False
@@ -50,7 +48,7 @@ class TestWatcher(unittest.TestCase):
         assert watcher.is_changed(tmpdir)
         assert watcher.is_changed(tmpdir) is False
 
-    def test_watch_file(self):
+    def test_watch_file(self) -> None:
         watcher = Watcher()
         count = 0
 
@@ -60,7 +58,7 @@ class TestWatcher(unittest.TestCase):
 
         filepath = os.path.join(tmpdir, "foo")
         with open(filepath, "w") as f:
-            f.write("")
+            _ = f.write("")
 
         def add_count() -> None:
             nonlocal count
@@ -75,7 +73,7 @@ class TestWatcher(unittest.TestCase):
         time.sleep(1)
 
         with open(filepath, "w") as f:
-            f.write("")
+            _ = f.write("")
 
         abs_filepath = os.path.abspath(filepath)
         assert watcher.examine() == (abs_filepath, None)
@@ -87,20 +85,20 @@ class TestWatcher(unittest.TestCase):
         assert watcher.examine() == (None, None)
         assert count == 2
 
-    def test_watch_glob(self):
+    def test_watch_glob(self) -> None:
         watcher = Watcher()
         watcher.watch(tmpdir + "/*")
         assert watcher.examine() == (None, None)
 
         with open(os.path.join(tmpdir, "foo.pyc"), "w") as f:
-            f.write("")
+            _ = f.write("")
 
         assert watcher.examine() == (None, None)
 
         filepath = os.path.join(tmpdir, "foo")
 
         with open(filepath, "w") as f:
-            f.write("")
+            _ = f.write("")
 
         abs_filepath = os.path.abspath(filepath)
         assert watcher.examine() == (abs_filepath, None)
@@ -110,17 +108,17 @@ class TestWatcher(unittest.TestCase):
         assert watcher.examine() == (abs_filepath, None)
         assert watcher.examine() == (None, None)
 
-    def test_watch_ignore(self):
+    def test_watch_ignore(self) -> None:
         watcher = Watcher()
         watcher.watch(tmpdir + "/*", ignore=lambda o: o.endswith(".ignore"))
         assert watcher.examine() == (None, None)
 
         with open(os.path.join(tmpdir, "foo.ignore"), "w") as f:
-            f.write("")
+            _ = f.write("")
 
         assert watcher.examine() == (None, None)
 
-    def test_watch_multiple_dirs(self):
+    def test_watch_multiple_dirs(self) -> None:
         first_dir = os.path.join(tmpdir, "first")
         second_dir = os.path.join(tmpdir, "second")
 
@@ -132,7 +130,7 @@ class TestWatcher(unittest.TestCase):
 
         first_path = os.path.join(first_dir, "foo")
         with open(first_path, "w") as f:
-            f.write("")
+            _ = f.write("")
         assert watcher.examine() == (first_path, None)
         assert watcher.examine() == (None, None)
 
@@ -142,12 +140,12 @@ class TestWatcher(unittest.TestCase):
 
         second_path = os.path.join(second_dir, "bar")
         with open(second_path, "w") as f:
-            f.write("")
+            _ = f.write("")
         assert watcher.examine() == (second_path, None)
         assert watcher.examine() == (None, None)
 
         with open(first_path, "a") as f:
-            f.write("foo")
+            _ = f.write("foo")
         assert watcher.examine() == (first_path, None)
         assert watcher.examine() == (None, None)
 
