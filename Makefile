@@ -1,3 +1,4 @@
+# .PHONY: clean-pyc clean-build docs test coverage lint typecheck check build install
 .PHONY: clean-pyc clean-build docs test coverage check build install
 
 clean: clean-build clean-pyc
@@ -32,7 +33,8 @@ test:
 # typecheck:
 #	uv run basedpyright
 
-check: lint typecheck test
+# check: lint typecheck test
+check: test
 
 coverage:
 	uv run --with pytest-cov pytest --cov=livereload --cov-report=html
