@@ -1,17 +1,15 @@
 """
-    livereload
-    ~~~~~~~~~~
+livereload
+~~~~~~~~~~
 
-    A python version of livereload.
+A python version of livereload.
 
-    :copyright: (c) 2013 by Hsiaoming Yang
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2013 by Hsiaoming Yang
+:license: BSD, see LICENSE for more details.
 """
 
-__version__ = '2.7.1'
-__author__ = 'Hsiaoming Yang <me@lepture.com>'
-__homepage__ = 'https://github.com/lepture/python-livereload'
+__version__ = "2.7.1"
 
 from .server import Server, shell
 
-__all__ = ('Server', 'shell')
+__all__ = ("Server", "shell")
