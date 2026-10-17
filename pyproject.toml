@@ -14,7 +14,7 @@ license = "BSD-3-Clause"
 license-files = [ "LICEN[CS]E*" ]
 maintainers = [ { name = "Bubu-Droid", email = "bubu@bubudroid.me" } ]
 authors = [ { name = "Hsiaoming Yang", email = "me@lepture.com" } ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Console",
@@ -25,7 +25,6 @@ classifiers = [
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -42,6 +41,9 @@ dynamic = [ "version" ]
 dependencies = [
   "tornado>=6.5.10",
 ]
+optional-dependencies.notify = [
+  "pyinotify>=0.9.6",
+]
 urls.Changelog = "https://github.com/lepture/python-livereload/blob/master/CHANGELOG.md"
 urls.Documentation = "https://livereload.readthedocs.io"
 urls.Issues = "https://github.com/lepture/python-livereload/issues"
@@ -51,6 +53,7 @@ scripts.livereload = "livereload.cli:main"
 [dependency-groups]
 dev = [
   "pytest>=8.4.2",
+  "typing-extensions>=4.16.0",
 ]
 
 [tool.hatch]
