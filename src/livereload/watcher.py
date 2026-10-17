@@ -55,7 +55,7 @@ class Watcher:
         _, ext = os.path.splitext(filename)
         return ext in [".pyc", ".pyo", ".o", ".swp"]
 
-    def watch(self, path, func=None, delay: float = 0, ignore=None):
+    def watch(self, path, func=None, delay=0, ignore=None):
         """Add a task to watcher.
 
         :param path: a filepath or directory path or glob pattern

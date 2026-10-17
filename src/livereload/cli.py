@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> None:
 
     # Create a new application
     server = Server()
-    server.watcher.watch(target or directory, delay=wait)
+    server.watcher.watch(target or directory, delay=wait)  # pyright: ignore[reportArgumentType]
     server.serve(
         host=host,
         port=port,
