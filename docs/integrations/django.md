@@ -10,14 +10,14 @@ Add `"livereload"` to your `INSTALLED_APPS` in the Django settings module
 
 ## Usage
 
-```
+```text
 $ python ./manage.py livereload
 ```
 
 You can optionally provide an port or address-port pair, to specify where the
 Django server should listen for requests.
 
-```
+```text
 $ python ./manage.py livereload 127.0.0.1:8000
 ```
 

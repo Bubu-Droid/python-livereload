@@ -13,14 +13,14 @@ Reload webpages on changes, without hitting refresh in your browser.
 :end-before: <!-- end install -->
 ```
 
-```{toctree}
+```text {toctree}
 :hidden:
 
 api
 cli
 ```
 
-```{toctree}
+```text {toctree}
 :caption: Integrations
 :glob:
 :hidden:
@@ -28,7 +28,7 @@ cli
 integrations/*
 ```
 
-```{toctree}
+```text {toctree}
 :caption: Project
 :hidden:
 
